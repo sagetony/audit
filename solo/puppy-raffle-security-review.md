@@ -1,6 +1,6 @@
 ## Summary
 
-The PuppyRaffle.sol contract has undergone a comprehensive security audit, revealing a total of 10 vulnerabilities. These vulnerabilities have been classified into different severity levels to provide a more detailed understanding of their impact.
+The PuppyRaffle.sol contract has undergone a comprehensive security audit, revealing a total of 9 vulnerabilities. These vulnerabilities have been classified into different severity levels to provide a more detailed understanding of their impact.
 
 High Severity Issues (2): These are critical vulnerabilities that demand immediate attention. Addressing these problems is vital to ensuring the contract's security and integrity.
 
