@@ -6,7 +6,7 @@ High Severity Issues (2): These are critical vulnerabilities that demand immedia
 
 Medium Severity Findings (2): While not as severe as the high-risk issues, these findings still pose a substantial level of risk and should be prioritized for resolution.
 
-Low Risk and Non-Critical Findings (6): These issues are relatively less critical but are worth addressing to maintain robust security practices and prevent potential future vulnerabilities.
+Low Risk and Non-Critical Findings (5): These issues are relatively less critical but are worth addressing to maintain robust security practices and prevent potential future vulnerabilities.
 
 This detailed breakdown of vulnerabilities allows a better assessment of the contract's overall security posture. It emphasizes the importance of addressing high and medium-risk issues promptly while also considering the low-risk findings to enhance the contract's long-term security and stability.
 
