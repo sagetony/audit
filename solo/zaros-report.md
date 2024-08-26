@@ -1,3 +1,5 @@
+### H-1 Incorrect Logic Used in Determining `ctx.isFillPriceValid` in `SettlementBranch::fillOffchainOrders` Function
+
 ## Description:
 
 Incorrect logic was applied while determining if `ctx.isFillPriceValid` is really valid. When placing a buy (long position), the fill price should be less than the target price (`fillPrice < targetPrice`). Conversely, when placing a sell (short position), the fill price should be greater than the target price (`fillPrice > targetPrice`).
@@ -85,6 +87,86 @@ Manual Audit
 ## Recommended Mitigation:
 
 To address this issue, correct the logic for validating the fill price in the `fillOffchainOrders` function. Ensure that for buy orders, the fill price is less than the target price, and for sell orders, the fill price is greater than the target price.
+
+
+### L-1 The Use of `payable` in `TradingAccount::createTradingAccountAndMulticall` Could Lead to Funds Getting Stuck in the Protocol
+
+Description:
+
+The function TradingAccount::createTradingAccountAndMulticall is marked as payable, potentially leading to users mistakenly depositing Ether into the protocol when creating an account with the Multicall functionality. Since msg.value is ignored, any Ether sent to this function will be permanently locked in the contract.
+function createTradingAccountAndMulticall(
+        bytes[] calldata data,
+        bytes memory referralCode,
+        bool isCustomReferralCode
+    )
+        external
+@>>  payable // ignored msg.value
+        virtual
+        returns (bytes[] memory results)
+    {
+        uint128 tradingAccountId = createTradingAccount(referralCode, isCustomReferralCode);
+
+        results = new bytes[](data.length);
+        for (uint256 i; i < data.length; i++) {
+            bytes memory dataWithAccountId = bytes.concat(data[i][0:4], abi.encode(tradingAccountId), data[i][4:]);
+            (bool success, bytes memory result) = address(this).delegatecall(dataWithAccountId);
+            
+            if (!success) {
+                uint256 len = result.length;
+                assembly {
+                    revert(add(result, 0x20), len)
+                }
+            }
+
+            results[i] = result;
+        }
+    }
+Impact:
+
+If users mistakenly send Ether when calling this function, the Ether will be irretrievably locked in the contract, leading to:
+
+Loss of Funds: Users may unintentionally lose their Ether by sending it to a function that does not process it.
+
+User Frustration: Users who mistakenly send Ether may become frustrated with the platform, potentially leading to a loss of trust and a decrease in user retention.
+
+Proof of Concept:
+
+A proof of concept would involve calling the createTradingAccountAndMulticall function and sending Ether along with the call. The Ether sent will not be processed and will be stuck in the contract.
+
+Recommended Mitigation:
+
+Remove the payable modifier from the createTradingAccountAndMulticall function to address this issue. This will prevent users from mistakenly sending Ether to the function.
+
+Additionally, you can add a withdraw function to enable users who have deposited Ether to withdraw.
+
+function createTradingAccountAndMulticall(
+        bytes[] calldata data,
+        bytes memory referralCode,
+        bool isCustomReferralCode
+    )
+        external
+        virtual
+        returns (bytes[] memory results)
+    {
+        uint128 tradingAccountId = createTradingAccount(referralCode, isCustomReferralCode);
+
+        results = new bytes[](data.length);
+        for (uint256 i; i < data.length; i++) {
+            bytes memory dataWithAccountId = bytes.concat(data[i][0:4], abi.encode(tradingAccountId), data[i][4:]);
+            (bool success, bytes memory result) = address(this).delegatecall(dataWithAccountId);
+            // @audit-info is dataWithAccountId trusted?? use of delegatecall can be risky,
+            // since the func is payable n theres a delegatecall its possible to loose funds
+            if (!success) {
+                uint256 len = result.length;
+                assembly {
+                    revert(add(result, 0x20), len)
+                }
+            }
+
+            results[i] = result;
+        }
+    }
+By implementing this change, the risk of Ether being mistakenly sent and stuck in the contract will be eliminated, thereby protecting user funds and maintaining the integrity of the protocol.
 
 ```solidity
 ctx.isFillPriceValid = (ctx.isBuyOrder && ctx.offchainOrder.targetPrice >= ctx.fillPriceX18.intoUint256())
